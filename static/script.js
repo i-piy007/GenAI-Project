@@ -66,5 +66,3 @@ document.addEventListener("DOMContentLoaded", () => {
     themeToggleBtn.textContent = "Switch to Dark";
   }
 });
-
-
