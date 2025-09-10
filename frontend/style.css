@@ -1,3 +1,22 @@
+/* Theme variables */
+:root {
+  /* Light theme */
+  --light-bg-main: #ffffff;
+  --light-bg-contacts: #f5f5f5;
+  --light-bg-chat: #ffffff;
+  --light-bg-input: #f5f5f5;
+  --light-text: #333333;
+  --light-border: #e0e0e0;
+  
+  /* Dark theme */
+  --dark-bg-main: #1c1f2b;
+  --dark-bg-contacts: #181b26;
+  --dark-bg-chat: #12141d;
+  --dark-bg-input: #2c3144;
+  --dark-text: #ffffff;
+  --dark-border: #2c3144;
+}
+
 /* Reset */
 * {
   margin: 0;
@@ -7,21 +26,44 @@
 }
 
 body {
-  background: #e5e5e5;
+  background: var(--dark-bg-main);
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
+  margin: 0;
+  overflow: hidden; /* Prevent scrolling */
 }
 
 /* Main container */
 .chat-container {
   display: flex;
-  width: 1000px;
-  height: 600px;
-  background: #1c1f2b;
-  border-radius: 15px;
+  width: 100vw; /* Full viewport width */
+  height: 100vh; /* Full viewport height */
+  background: var(--dark-bg-main);
   overflow: hidden;
+  transition: background-color 0.3s ease;
+}
+
+/* Theme Classes */
+body.light-theme .chat-container { background: var(--light-bg-main); }
+body.light-theme .contacts { 
+  background: var(--light-bg-contacts);
+  color: var(--light-text);
+  border-right: 1px solid var(--light-border);
+}
+body.light-theme .chat { background: var(--light-bg-chat); }
+body.light-theme .chat-header { 
+  color: var(--light-text);
+  border-bottom: 1px solid var(--light-border);
+}
+body.light-theme .chat-input input { 
+  background: var(--light-bg-input);
+  color: var(--light-text);
+}
+body.light-theme .contact:hover,
+body.light-theme .contact.active {
+  background: var(--light-bg-input);
 }
 
 /* Sidebar */
@@ -180,4 +222,58 @@ body {
   padding: 10px 15px;
   border-radius: 10px;
   cursor: pointer;
+}
+/* Settings panel (hidden by default) */
+.settings-panel {
+  position: absolute;
+  top: 50px;
+  left: 70px;
+  width: 220px;
+  background: var(--bg-contacts); /* ✅ now works */
+  border-radius: 10px;
+  padding: 15px;
+  color: var(--text-color);       /* ✅ now works */
+  box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  display: none;
+  z-index: 10;
+}
+
+
+.settings-panel.active {
+  display: block;
+}
+
+.setting-item {
+  margin-top: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.setting-item button {
+  background: var(--bg-sidebar);
+  border: none;
+  color: #3d5afe;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+/* Default (dark theme) mapping */
+:root {
+  --bg-main: var(--dark-bg-main);
+  --bg-contacts: var(--dark-bg-contacts);
+  --bg-chat: var(--dark-bg-chat);
+  --bg-input: var(--dark-bg-input);
+  --text-color: var(--dark-text);
+  --border-color: var(--dark-border);
+}
+
+/* Light theme overrides */
+body.light-theme {
+  --bg-main: var(--light-bg-main);
+  --bg-contacts: var(--light-bg-contacts);
+  --bg-chat: var(--light-bg-chat);
+  --bg-input: var(--light-bg-input);
+  --text-color: var(--light-text);
+  --border-color: var(--light-border);
 }

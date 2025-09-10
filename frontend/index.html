@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Group Chat UI</title>
   <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="dark"> <!-- default dark -->
   <div class="chat-container">
     
     <!-- Sidebar -->
@@ -15,14 +15,22 @@
         <div class="icon active">🏠</div>
         <div class="icon">⭐</div>
         <div class="icon">📊</div>
-        <div class="icon">⚙️</div>
+        <div class="icon settings-btn" id="settings-btn">⚙️</div>
+      </div>
+      <!-- Settings Panel -->
+      <div class="settings-panel" id="settings-panel">
+        <h3>Settings</h3>
+        <div class="setting-item">
+          <span>Theme</span>
+          <button id="theme-toggle">Switch Theme</button>
+        </div>
       </div>
       <div class="sidebar-bottom">
         <div class="icon">👤</div>
       </div>
     </aside>
 
-    <!-- Contacts List -->
+    <!-- Contacts -->
     <section class="contacts">
       <div class="search-box">
         <input type="text" placeholder="Search">
@@ -41,16 +49,9 @@
           <p>Lorem ipsum dolor sit amet</p>
         </div>
       </div>
-      <div class="contact">
-        <div class="avatar">👤</div>
-        <div class="contact-info">
-          <h4>User Name</h4>
-          <p>Lorem ipsum dolor sit amet</p>
-        </div>
-      </div>
     </section>
 
-    <!-- Chat Section -->
+    <!-- Chat -->
     <main class="chat">
       <header class="chat-header">
         <h3>User Name</h3>
