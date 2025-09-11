@@ -16,22 +16,55 @@ inputField.addEventListener("keypress", function(event) {
   }
 });
 
-function sendMessage() {
+async function sendMessage() {
   const messageText = inputField.value.trim();
-
   if (messageText === "") return;
 
-  // Create message
+  // Render user's message
   const message = document.createElement("div");
   message.classList.add("message", "sent");
   message.innerHTML = `
-    <p>${messageText}</p>
+    <p>${escapeHtml(messageText)}</p>
     <span class="time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
   `;
-
   chatBox.appendChild(message);
   chatBox.scrollTop = chatBox.scrollHeight;
+
+  // Clear input early for snappy UX
   inputField.value = "";
+
+  try {
+    const data = await sendToBots(messageText);
+    const replies = data.replies || [];
+    for (const r of replies) {
+      const botMsg = document.createElement("div");
+      botMsg.classList.add("message", "received");
+      botMsg.innerHTML = `
+        <p><strong>${escapeHtml(r.bot)}:</strong> ${escapeHtml(r.message)}</p>
+        <span class="time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+      `;
+      chatBox.appendChild(botMsg);
+    }
+    chatBox.scrollTop = chatBox.scrollHeight;
+  } catch (err) {
+    const errMsg = document.createElement("div");
+    errMsg.classList.add("message", "received");
+    errMsg.innerHTML = `
+      <p><strong>System:</strong> ${escapeHtml(String(err))}</p>
+      <span class="time">${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+    `;
+    chatBox.appendChild(errMsg);
+    chatBox.scrollTop = chatBox.scrollHeight;
+  }
+}
+
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
 }
 
 // Toggle Settings Panel
