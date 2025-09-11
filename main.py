@@ -5,6 +5,8 @@ import os
 
 
 app = Flask(__name__)
+app.config['TEMPLATES_AUTO_RELOAD'] = True
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0  # disable static caching in dev
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 # OpenAI client (Router)
@@ -61,6 +63,14 @@ def get_histories_for_session():
 @app.route('/')
 def index():
     return render_template('index.html')
+
+@app.after_request
+def add_header(r):
+    # Disable caching so CSS/JS/template edits show up on refresh during development
+    r.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, public, max-age=0"
+    r.headers["Pragma"] = "no-cache"
+    r.headers["Expires"] = "0"
+    return r
 
 @app.route('/chat', methods=['POST'])
 def chat():
