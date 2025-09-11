@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Group Chat UI</title>
-  <link rel="stylesheet" href="../static/styles.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body class="dark"> <!-- default dark -->
   <div class="chat-container">
@@ -73,6 +73,20 @@
     </main>
 
   </div>
-  <script src="../static/script.js"></script>
+  <script>
+    async function sendToBots(message) {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message })
+      });
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || 'Request failed');
+      }
+      return res.json();
+    }
+  </script>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>
