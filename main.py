@@ -1,4 +1,7 @@
-from flask import Flask, render_template, request, jsonify, session
+from flask import Flask, render_template, request, jsonify, session, redirect, url_for
+from werkzeug.security import generate_password_hash, check_password_hash
+import sqlite3
+from pathlib import Path
 import uuid
 import openai
 import os
@@ -58,6 +61,52 @@ BOT_DEFS = {
 # Per-session histories: { session_id: { bot_name: [messages...] } }
 HISTORIES = {}
 
+# --- SQLite user database setup ---
+REPO_ROOT = Path(__file__).parent
+DB_PATH = REPO_ROOT / "user_data.db"
+
+def init_db():
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+def get_user_password_hash(username: str) -> str | None:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        cur = conn.execute("SELECT password_hash FROM users WHERE username = ?", (username,))
+        row = cur.fetchone()
+        return row[0] if row else None
+    finally:
+        conn.close()
+
+def create_user(username: str, password_hash: str) -> bool:
+    conn = sqlite3.connect(DB_PATH)
+    try:
+        try:
+            conn.execute(
+                "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+                (username, password_hash),
+            )
+            conn.commit()
+            return True
+        except sqlite3.IntegrityError:
+            # likely UNIQUE constraint failed
+            return False
+    finally:
+        conn.close()
+
 def get_session_id():
     sid = session.get("sid")
     if not sid:
@@ -76,7 +125,42 @@ def get_histories_for_session():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('login_index.html')
+
+# sign_in route defined later
+
+@app.route('/signup', methods=['POST'])
+def signup():
+    username = (request.form.get('username') or '').strip()
+    password = request.form.get('password') or ''
+    if not username or not password:
+        return render_template('login_index.html', error='Please provide username and password.')
+    pwd_hash = generate_password_hash(password)
+    if not create_user(username, pwd_hash):
+        return render_template('login_index.html', error='Username already exists. Try a different one or sign in.')
+    session['user'] = username
+    return redirect(url_for('chat'))
+
+@app.route('/login', methods=['POST'])
+def login():
+    username = (request.form.get('username') or '').strip()
+    password = request.form.get('password') or ''
+    if not username or not password:
+        return render_template('sign_in.html', error='Please provide username and password.')
+    pwd_hash = get_user_password_hash(username)
+    if not pwd_hash or not check_password_hash(pwd_hash, password):
+        return render_template('sign_in.html', error='Invalid username or password.')
+    session['user'] = username
+    return redirect(url_for('chat'))
+
+@app.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect(url_for('index'))
+
+@app.route('/sign_in')
+def sign_in():
+    return render_template('sign_in.html')
 
 @app.after_request
 def add_header(r):
@@ -86,8 +170,13 @@ def add_header(r):
     r.headers["Expires"] = "0"
     return r
 
-@app.route('/chat', methods=['POST'])
+@app.route('/chat', methods=['GET', 'POST'])
 def chat():
+    # Serve the chat UI on GET
+    if request.method == 'GET':
+        return render_template('chat.html', username=session.get('user'))
+
+    # Handle chat API on POST
     data = request.get_json(force=True) or {}
     user_text = (data.get('message') or '').strip()
     if not user_text:
@@ -114,4 +203,5 @@ def chat():
     return jsonify({"replies": replies})
 
 if __name__ == '__main__':
+    init_db()
     app.run(debug=True)

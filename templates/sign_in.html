@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Create an account</title>
-    <link rel="stylesheet" href="login_style.css">
+    <title>Sign in</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='sign_in_style.css') }}">
 </head>
 <body>
     <div class="container">
@@ -14,7 +14,7 @@
             </div>
             <div class="image-section">
                 <img src="https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=600&q=80" alt="Login Illustration" class="bg-img">
-                <div class="left-caption">Sign up now</div>
+                <div class="left-caption">Sign in now</div>
                 <div class="rigth-caption">Meet your smart assistant</div>
                 <div class="carousel-dots">
                     <span></span><span></span><span class="active"></span>
@@ -23,7 +23,7 @@
         </div>
         <div class="right-panel">
 
-             <button id="topRightButton" style="
+            <button id="topRightButton" style="
              position: absolute;
              top: 10px;
              right: 10px;
@@ -36,28 +36,39 @@
              font-weight: bold;
              ">Bypass</button>
 
-            <form class="login-form">
-                <h1>Create an account</h1>
-                <p class="subtitle">Already have an account? <a href="#">Log in</a></p>
+            <form class="login-form" action="{{ url_for('login') }}" method="POST">
+                <h1>Sign in</h1>
+                <p class="subtitle">Don't have an account? <a href="{{ url_for('index') }}">Sign Up</a></p>
                 <div class="input-row">
-                    <input type="text" placeholder="Username" required>
+                    <input type="text" name="username" placeholder="Username" required>
                     
                 </div>
                 <div class="password-row">
-                    <input type="password" placeholder="Enter your password" required>
+                    <input type="password" name="password" placeholder="Enter your password" required>
                     <span class="eye-icon">&#128065;</span>
                 </div>
-                <div class="checkbox-row">
-                    <input type="checkbox" id="terms" required>
-                    <label for="terms">I agree to the <a href="#">Terms & Conditions</a></label>
-                </div>
-                <button type="submit" class="create-btn">Create account</button>
+  
+                <button type="submit" class="create-btn">Sign in</button>
                 <div class="divider">
                     <span></span>
                 </div>
+                {% if error %}
+                <p class="error" style="color:#e74c3c; margin-top:8px;">{{ error }}</p>
+                {% endif %}
             </form>
         </div>
     </div>
-    <script src="login_script.js"></script>
+        <script>
+        // Wire the top-right Bypass button to open the chat UI
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('topRightButton');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    window.location.href = "{{ url_for('chat') }}";
+                });
+            }
+        });
+    </script>
+    <script src="{{ url_for('static', filename='sign_in_script.js') }}"></script>
 </body>
 </html>
