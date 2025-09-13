@@ -253,11 +253,26 @@ body {
 }
 .messages {
 	display: grid;
-	gap: 16px; /* 8px multiple */
+	/* remove automatic grid gap so we can control spacing per-message for clearer grouping */
+	gap: 0;
 	width: min(100%, var(--content-max));
-	margin: 16px auto; /* equal spacing above first message and below input edge */
+	margin: 10px auto; /* slightly reduce outer margins to make chat denser */
 	padding: 0 16px; /* align with grid rhythm */
 }
+
+/* Grouped messages (same sender) — very tight vertical spacing (nearly collapsed) */
+
+/* Very tight spacing for grouped messages (same sender) */
+.message.grouped { margin-top: 2px; margin-bottom: 2px; }
+.message.grouped + .message.grouped { margin-top: 1px; }
+
+/* Large separation when sender changes */
+.message.separation { margin-top: 40px; margin-bottom: 0; }
+
+/* Hide avatar visually but keep its layout space so bubbles align correctly */
+.user-bubble-logo.avatar-hidden { visibility: hidden; opacity: 0; }
+
+/* Removed generic non-grouped spacing to avoid overriding .separation */
 
 /* Chat bubbles */
 .message { display: flex; }

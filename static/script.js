@@ -156,6 +156,16 @@
 		bubble.style.background = 'var(--bubble-user-bg)';
 		bubble.style.color = 'var(--bubble-user-text)';
 		container.appendChild(bubble);
+		// Add user logo to the right
+		const userLogo = document.createElement('span');
+		userLogo.className = 'user-bubble-logo';
+		const img = document.createElement('img');
+		img.src = '../static/assests/user.png';
+		img.alt = 'User';
+		img.width = 28;
+		img.height = 28;
+		userLogo.appendChild(img);
+		container.appendChild(userLogo);
 		messages.appendChild(container);
 		input.value = '';
 		scrollMessagesToBottom();
@@ -173,18 +183,71 @@
 		// Send to backend and render bot replies gradually
 		try {
 			const data = await sendToBots(text);
-			const replies = (data && data.replies) || [];
+			let replies = (data && data.replies) || [];
+			// Reorder by estimated length + small random jitter so shorter messages tend to appear first
+			replies = replies
+				.map(r => {
+					const msg = String(r.message || '');
+					const parts = msg.split(/(?:\r?\n|\\n)/).filter(Boolean);
+					const size = msg.length + parts.length * 20; // weight multi-line replies a bit more
+					const jitter = Math.random() * 200 - 100; // -100..+100 effect
+					return { r, score: size + jitter };
+				})
+				.sort((a, b) => a.score - b.score)
+				.map(x => x.r);
+
 			// Show replies one by one with random delays
 			for (const r of replies) {
-				await new Promise(res => setTimeout(res, 300 + Math.random() * 500));
-				const left = document.createElement('div');
-				left.className = 'message left';
-				const botBubble = document.createElement('div');
-				botBubble.className = 'bubble';
-				botBubble.textContent = `${r.bot}: ${r.message}`;
-				left.appendChild(botBubble);
-				messages.appendChild(left);
-				scrollMessagesToBottom();
+				// Split bot replies into multiple messages.
+				// Accept either a literal backslash+n sequence ("\\n") or real newline characters.
+				// Then filter out any empty/whitespace-only lines.
+				const botLines = String(r.message)
+					.split(/(?:\r?\n|\\n)/)
+					.map(l => String(l || '').trim())
+					.filter(l => l.length > 0);
+				for (const line of botLines) {
+					await new Promise(res => setTimeout(res, 300 + Math.random() * 500));
+					const left = document.createElement('div');
+					left.className = 'message left';
+					// Bot logo (emoji) for each bot
+					const botLogo = document.createElement('span');
+					botLogo.className = 'user-bubble-logo';
+					let emoji = '';
+					if (r.bot.includes('Empath')) emoji = '💙';
+					else if (r.bot.includes('Rationalist')) emoji = '🧠';
+					else if (r.bot.includes('Challenger')) emoji = '🔥';
+					else if (r.bot.includes('Optimist')) emoji = '✨';
+					botLogo.textContent = emoji;
+					// Find the last actual message bubble (skip typing indicator if present)
+					let lastMessageEl = messages.lastElementChild;
+					if (lastMessageEl && lastMessageEl.querySelector && lastMessageEl.querySelector('.typing-bubble')) {
+						lastMessageEl = lastMessageEl.previousElementSibling;
+					}
+					const lastBubble = lastMessageEl ? lastMessageEl.querySelector('.bubble') : null;
+					const lastSender = lastBubble ? lastBubble.getAttribute('data-bot') : null;
+					// If the previous visible bubble is from the same bot, hide this avatar and mark grouped spacing
+					if (lastSender === r.bot) {
+						botLogo.classList.add('avatar-hidden');
+						left.classList.add('grouped');
+					} else {
+						// mark explicit separation for clearer visual break
+						left.classList.add('separation');
+					}
+					left.appendChild(botLogo);
+					const botBubble = document.createElement('div');
+					botBubble.className = 'bubble';
+					botBubble.textContent = line;
+					botBubble.setAttribute('data-bot', r.bot);
+					botBubble.setAttribute('aria-label', r.bot);
+					left.appendChild(botBubble);
+					// Insert the new message before the typing indicator so typing stays at the bottom
+					if (typing && messages.lastElementChild === typing) {
+						messages.insertBefore(left, typing);
+					} else {
+						messages.appendChild(left);
+					}
+					scrollMessagesToBottom();
+				}
 			}
 		} catch (err) {
 			const left = document.createElement('div');
