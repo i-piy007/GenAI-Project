@@ -29,6 +29,12 @@
 		const expanded = gearBtn.getAttribute('aria-expanded') === 'true';
 		gearBtn.setAttribute('aria-expanded', String(!expanded));
 		if (settingsPanel) settingsPanel.classList.toggle('open', !expanded);
+		// Rotate gear icon
+		if (!expanded) {
+			gearBtn.classList.add('rotated');
+		} else {
+			gearBtn.classList.remove('rotated');
+		}
 	});
 
 	// Close settings when clicking outside
@@ -290,13 +296,63 @@ function scrollMessagesToBottom() {
 window.addEventListener('DOMContentLoaded', scrollMessagesToBottom);
 window.addEventListener('resize', scrollMessagesToBottom);
 
+
 // Observe new messages (from any source) and keep view at bottom
 const observer = new MutationObserver(() => {
-	// Scroll when new nodes are added (messages or content changes)
 	scrollMessagesToBottom();
 });
 if (messages) {
 	observer.observe(messages, { childList: true, subtree: true, characterData: true });
 }
+
+// --- User Info Modal logic ---
+document.addEventListener('DOMContentLoaded', function () {
+	// Modal HTML is injected at the end of body if not present
+	if (!document.getElementById('userInfoModal')) {
+		fetch('/templates/user_info_modal.html').then(r => r.text()).then(html => {
+			document.body.insertAdjacentHTML('beforeend', html);
+			setupUserModal();
+		});
+	} else {
+		setupUserModal();
+	}
+
+		function setupUserModal() {
+			const userBtn = document.getElementById('userBtn');
+			const modal = document.getElementById('userInfoModal');
+			const closeBtn = document.getElementById('closeUserInfoModal');
+			const nameInput = document.getElementById('userInfoName');
+			const passInput = document.getElementById('userInfoPassword');
+			const descInput = document.getElementById('userInfoDesc');
+			if (userBtn && modal && closeBtn) {
+				userBtn.addEventListener('click', function (e) {
+					e.preventDefault();
+					// Prefill with localStorage if present (bypass sets these)
+					if (nameInput) nameInput.value = localStorage.getItem('user') || '';
+					if (passInput) passInput.value = localStorage.getItem('password') || '';
+					if (descInput) descInput.value = localStorage.getItem('description') || '';
+					modal.style.display = 'flex';
+				});
+				closeBtn.addEventListener('click', function () {
+					modal.style.display = 'none';
+				});
+				modal.addEventListener('click', function (e) {
+					if (e.target === modal) modal.style.display = 'none';
+				});
+				// Save on submit
+				const form = document.getElementById('userInfoForm');
+				if (form) {
+					form.addEventListener('submit', function(ev) {
+						ev.preventDefault();
+						if (nameInput) localStorage.setItem('user', nameInput.value);
+						if (passInput) localStorage.setItem('password', passInput.value);
+						if (descInput) localStorage.setItem('description', descInput.value);
+						modal.style.display = 'none';
+					});
+				}
+			}
+		}
+});
+
 })();
 

@@ -235,7 +235,14 @@ body {
 	margin-left: 0; /* center gear within squared panel */
 }
 .gear-item img {
-    margin-left: -25px;
+	margin-left: -25px;
+	transition: transform 0.3s cubic-bezier(.4,2,.6,1);
+}
+.gear-item.rotated img {
+	transform: rotate(60deg);
+}
+.gear-item.unrotated img {
+	transform: rotate(-60deg);
 }
 .settings-item img { width: 34px; height: 34px; display: block; }
 .placeholder-dot { width: 14px; height: 14px; background: #4b5563; border-radius: 50%; display: block; }

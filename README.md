@@ -1,44 +1,150 @@
-# GenAI-Project — Multi‑Bot Group Chat (Hackathon)
+# GenAI-Project — Multi‑Bot Group Chat
 
-A lightweight Flask app that lets you chat with multiple AI personas at once (Empath, Rationalist, Challenger, Optimist). Built as a Gen AI hackathon project. The UI is a simple group chat; each bot can see the full shared conversation and respond in turn.
+A lightweight Flask app that lets you chat with multiple AI personas at once — Empath 💙, Rationalist 🧠, Challenger 🔥, and Optimist ✨. All bots see the same conversation and reply in turn, so it feels like a group chat with distinct voices.
 
-## Quick start
+The project includes a minimal sign‑up/sign‑in flow (SQLite + hashed passwords), a responsive chat UI with dark/light themes, and router-based LLM calls via the OpenAI Python SDK pointed at Requesty Router.
 
-- Windows (PowerShell):
+## Quick start (Windows PowerShell)
 
 ```powershell
-# from the repo root
+# From the repo root
 python app.py
 ```
 
-The launcher installs required packages (via requirements.txt) if missing, then starts the Flask server in debug mode.
+What this does:
+- Ensures dependencies from `requirements.txt` are installed
+- Starts the Flask server in debug mode
+- Opens http://127.0.0.1:5000 in your default browser
 
-Open http://127.0.0.1:5000 in your browser.
+If you prefer manual setup:
+```powershell
+python -m pip install -r requirements.txt
+python main.py
+```
+
+## Features
+
+- Multi‑bot replies in one thread (Empath, Rationalist, Challenger, Optimist)
+- Simple auth: sign up, sign in, logout (SQLite `user_data.db`, password hashing via Werkzeug)
+- Clean chat UI with dark/light theme toggle and animated typing indicator
+- “Bypass” button on auth screens to jump straight into chat (useful for demos)
+- Caching disabled in dev so CSS/JS/template changes show on refresh
 
 ## Tech stack
 
-- Python + Flask (backend + templating)
-- OpenAI Python SDK (pointed at router.requesty.ai) for LLM calls
-- HTML/CSS/JS (frontend), no framework
+- Backend: Python 3 + Flask (Jinja templates)
+- LLM: OpenAI Python SDK configured to call Requesty Router
+- Frontend: Vanilla HTML/CSS/JS (no framework)
 
-## Project structure (key files)
+## Project structure
 
-- `app.py` — bootstrap runner. Ensures dependencies are installed, then runs `main.py`.
-- `main.py` — Flask app, routes, multi‑bot logic, and chat API (`POST /chat`).
-- `templates/index.html` — Group chat layout (Jinja2 template).
-- `static/styles.css` — Styles for the chat UI.
-- `static/script.js` — Frontend logic: send message, render bot replies, theme toggle.
-- `requirements.txt` — Python dependencies (Flask, openai).
-- `py_test.py` / `ai_api_test.py` — Standalone scripts for API testing and CLI multi‑bot chat.
-- `frontend/` (if present) — Scratch space for experimenting with new UI components; not used by Flask at runtime.
+```
+app.py                 # Launcher: installs deps (if needed) and runs main.py
+main.py                # Flask app: routes, SQLite auth, multi‑bot logic, /chat API
+requirements.txt       # Flask + openai
+user_data.db           # SQLite DB (created at runtime)
+templates/
+	index.html           # Chat UI
+	login_index.html     # Sign up page
+	sign_in.html         # Sign in page
+static/
+	style.css            # Chat styles
+	script.js            # Chat behavior: send/receive, theme, sidebar, modal
+	login_style.css      # Sign up styles
+	sign_in_style.css    # Sign in styles
+	login_script.js      # (empty placeholder)
+	sign_in_script.js    # (empty placeholder)
+	assests/             # UI icons (note: folder name spelled "assests" in code)
+```
+
+## How it works
+
+- Bots are defined in `main.py` (`BOT_DEFS`) with distinct instructions and names.
+- Session‑scoped chat histories are maintained per bot so each model call sees the full context.
+- On `POST /chat`, the server calls the router model once per bot and returns all replies.
+- `script.js` then renders the messages, groups consecutive replies per bot, and animates appearance.
+
+Model configuration (in `main.py`):
+- Router base URL: `https://router.requesty.ai/v1`
+- Model: `alibaba/qwen3-30b-a3b-instruct-2507`
+- API library: `openai` (v1+ style client)
+
+## Routes and API
+
+- `GET /` → Sign‑up page (`templates/login_index.html`)
+- `GET /sign_in` → Sign‑in page (`templates/sign_in.html`)
+- `POST /signup` → Create user; on success redirects to `/chat`
+- `POST /login` → Log in user; on success redirects to `/chat`
+- `GET /logout` → Clear session and redirect to `/`
+- `GET /chat` → Render chat UI (`templates/index.html`)
+- `POST /chat` → Chat API
+
+Request body for `POST /chat`:
+
+```json
+{ "message": "your text" }
+```
+
+Response body:
+
+```json
+{
+	"replies": [
+		{ "bot": "Empath 💙", "message": "..." },
+		{ "bot": "Rationalist 🧠", "message": "..." },
+		{ "bot": "Challenger 🔥", "message": "..." },
+		{ "bot": "Optimist ✨", "message": "..." }
+	]
+}
+```
 
 ## Configuration
 
-- Dev auto‑reload is enabled (Flask debug). Template/static changes show on browser refresh.
-- API key: this project currently uses a hardcoded router key in `main.py` for simplicity. Replace it with your own or adapt to use an environment variable.
-- Optional: set `FLASK_SECRET_KEY` for sessions in development.
+- Secret key for sessions: set `FLASK_SECRET_KEY` (or the app uses a dev default)
 
-## Notes
+```powershell
+$env:FLASK_SECRET_KEY = "change-me"
+```
 
-- This repo is intended for hackathon prototyping. Do not commit real secrets.
-- For production, move secrets to environment variables, add proper logging, and run behind a production WSGI server.
+- Router API key: currently hardcoded in `main.py` for demo purposes. Replace the `ROUTER_API_KEY` value with your own. For production, move secrets to env vars and don’t commit them.
+
+## Database
+
+- SQLite file: `user_data.db` at repo root
+- Table: `users(id, username UNIQUE, password_hash, created_at)`
+- To reset: stop the server and delete `user_data.db` (a fresh DB will be created on next run)
+
+## Customize
+
+- Edit `BOT_DEFS` in `main.py` to change the personas, tone, or constraints
+- Change the model name or router base URL where `client.chat.completions.create(...)` is called
+- Tweak chat UI in `templates/index.html` and `static/style.css`
+- Add behavior to `static/login_script.js` or `static/sign_in_script.js` (currently empty)
+
+## Troubleshooting
+
+- “No module named …” on first run:
+	- The launcher should install deps automatically. If it fails, run:
+		```powershell
+		python -m pip install -r requirements.txt
+		```
+
+- Server starts but browser shows an error:
+	- Check the terminal for a stack trace
+	- Verify your router API key is valid (update `ROUTER_API_KEY` in `main.py`)
+
+- Port 5000 in use:
+	- Stop the other process or run Flask on a different port by editing `app.run(debug=True)` in `main.py` (e.g., `app.run(debug=True, port=5050)`).
+
+- Static changes aren’t showing:
+	- Caching headers are disabled in dev, but a hard refresh (Ctrl+F5) can help
+
+## Notes and limitations
+
+- This is a hackathon‑style prototype: no CSRF protection on forms, no rate limiting, secrets are hardcoded for demo, and error handling is minimal
+- Don’t commit real API keys; prefer environment variables in real deployments
+- For production, use a proper WSGI server (e.g., gunicorn) and configure logging, secrets, and HTTPS
+
+---
+
+Made for quick demos and experimentation with multi‑persona LLM chats. Have fun hacking! 🚀
