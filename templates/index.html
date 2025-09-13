@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Multi-Agent Chat</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../static/style.css" />
+  </head>
+  <body>
+    <header class="topbar">
+  <button id="sidebarToggle" class="user-logo" aria-label="Toggle user list" aria-expanded="false" aria-controls="sidebar"><img src="../static/assests/user.png" alt="User" style="width: 20px; height: 20px;"></button>
+    </header>
+
+    <aside id="sidebar" class="sidebar" aria-hidden="true">
+      <div class="sidebar-header">
+        <span>Gen AI Bots</span>
+      </div>
+      <div class="user-list">
+        <div class="user-card">
+          <div class="user-avatar" style="font-size: 2rem; display: flex; align-items: center; justify-content: center;">💙</div>
+          <div class="user-name">Empath 💙</div>
+        </div>
+        <div class="user-card">
+          <div class="user-avatar" style="font-size: 2rem; display: flex; align-items: center; justify-content: center;">🧠</div>
+          <div class="user-name">Rationalist 🧠</div>
+        </div>
+        <div class="user-card">
+          <div class="user-avatar" style="font-size: 2rem; display: flex; align-items: center; justify-content: center;">🔥</div>
+          <div class="user-name">Challenger 🔥</div>
+        </div>
+        <div class="user-card">
+          <div class="user-avatar" style="font-size: 2rem; display: flex; align-items: center; justify-content: center;">✨</div>
+          <div class="user-name">Optimist ✨</div>
+        </div>
+      </div>
+
+      <div class="sidebar-footer">
+        <div id="settingsPanel" class="settings-panel" role="group" aria-label="Settings">
+          <button id="gearBtn" class="settings-item gear-item" aria-expanded="false" aria-controls="settingsPanel" title="Settings">
+            <img src="../static/assests/settings.png" alt="Settings" />
+          </button>
+          <button class="settings-item" aria-label="Placeholder 1" title="Placeholder 1">
+            <span class="placeholder-dot" aria-hidden="true"></span>
+          </button>
+          <button id="themeToggle" class="settings-item" aria-label="Toggle theme" title="Toggle theme">
+            <img src="../static/assests/moon.png" alt="Toggle theme" />
+          </button>
+          <button class="settings-item" aria-label="Placeholder 2" title="Placeholder 2">
+            <span class="placeholder-dot" aria-hidden="true"></span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <main class="content" id="content">
+      <div class="messages" id="messages" role="log" aria-live="polite" aria-relevant="additions">
+        <div class="message left">
+          <span class="user-bubble-logo"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="8" r="4" stroke="currentColor" stroke-width="2"/><path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2"/></svg></span>
+          <div class="bubble">how was your day today?</div>
+        </div>
+      </div>
+    </main>
+
+    <div class="input-bar" id="inputBar">
+      <form id="chatForm" autocomplete="off">
+        <input type="text" id="messageInput" placeholder="Type a message…" />
+        <button type="submit" class="send-btn" aria-label="Send message">Send</button>
+      </form>
+    </div>
+
+  <script src="../static/script.js"></script>
+  </body>
+  </html>

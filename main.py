@@ -173,7 +173,7 @@ def add_header(r):
 def chat():
     # Serve the chat UI on GET
     if request.method == 'GET':
-        return render_template('chat.html', username=session.get('user'))
+        return render_template('index.html', username=session.get('user'))
 
     # Handle chat API on POST
     data = request.get_json(force=True) or {}

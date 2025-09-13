@@ -107,21 +107,21 @@
 		// Update theme icon PNG
 		if (themeToggle) {
 			const img = themeToggle.querySelector('img');
-			if (img) img.src = name === 'dark' ? 'sun.png' : 'moon.png';
+			if (img) img.src = name === 'dark' ? '../static/assests/sun.png' : '../static/assests/moon.png';
 		}
 		// Update settings gear icon
 		const gearBtn = document.getElementById('gearBtn');
 		if (gearBtn) {
 			const gearImg = gearBtn.querySelector('img');
-			if (gearImg) gearImg.src = name === 'dark' ? 'settings-white.png' : 'settings.png';
+			if (gearImg) gearImg.src = name === 'dark' ? '../static/assests/settings-white.png' : '../static/assests/settings.png';
 		}
 		// Update all user avatars and user logo for theme
 		const userLogo = document.querySelector('.user-logo img');
 		if (userLogo) {
-			userLogo.src = name === 'dark' ? 'user-white.png' : 'user.png';
+			userLogo.src = name === 'dark' ? '../static/assests/user-white.png' : '../static/assests/user.png';
 		}
 		document.querySelectorAll('.user-avatar-img').forEach(img => {
-			img.src = name === 'dark' ? 'user-white.png' : 'user.png';
+			img.src = name === 'dark' ? '../static/assests/user-white.png' : '../static/assests/user.png';
 		});
 	}
 
@@ -143,7 +143,7 @@
 	});
 
 	// Simple message appender so the page feels alive
-	form?.addEventListener('submit', (e) => {
+	form?.addEventListener('submit', async (e) => {
 		e.preventDefault();
 		const text = input.value.trim();
 		if (!text) return;
@@ -159,7 +159,60 @@
 		messages.appendChild(container);
 		input.value = '';
 		scrollMessagesToBottom();
+
+		// Show typing indicator
+		const typing = document.createElement('div');
+		typing.className = 'message left';
+		const typingBubble = document.createElement('div');
+		typingBubble.className = 'bubble typing-bubble';
+		typingBubble.innerHTML = '<span class="typing-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+		typing.appendChild(typingBubble);
+		messages.appendChild(typing);
+		scrollMessagesToBottom();
+
+		// Send to backend and render bot replies gradually
+		try {
+			const data = await sendToBots(text);
+			const replies = (data && data.replies) || [];
+			// Show replies one by one with random delays
+			for (const r of replies) {
+				await new Promise(res => setTimeout(res, 300 + Math.random() * 500));
+				const left = document.createElement('div');
+				left.className = 'message left';
+				const botBubble = document.createElement('div');
+				botBubble.className = 'bubble';
+				botBubble.textContent = `${r.bot}: ${r.message}`;
+				left.appendChild(botBubble);
+				messages.appendChild(left);
+				scrollMessagesToBottom();
+			}
+		} catch (err) {
+			const left = document.createElement('div');
+			left.className = 'message left';
+			const errBubble = document.createElement('div');
+			errBubble.className = 'bubble';
+			errBubble.textContent = `System: ${String(err)}`;
+			left.appendChild(errBubble);
+			messages.appendChild(left);
+			scrollMessagesToBottom();
+		} finally {
+			// Remove typing indicator when all replies are shown or on error
+			typing.remove();
+		}
 	});
+
+	async function sendToBots(message) {
+		const res = await fetch('/chat', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ message })
+		});
+		if (!res.ok) {
+			const t = await res.text();
+			throw new Error(t || 'Request failed');
+		}
+		return res.json();
+	}
 
 // Simple message appender so the page feels alive
 function scrollMessagesToBottom() {
