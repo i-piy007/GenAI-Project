@@ -1,8 +1,8 @@
 # GenAI-Project — Multi‑Bot Group Chat
 
-A lightweight Flask app that lets you chat with multiple AI personas at once — Empath 💙, Rationalist 🧠, Challenger 🔥, and Optimist ✨. All bots see the same conversation and reply in turn, so it feels like a group chat with distinct voices.
+A small Flask app where four bots — Empath 💙, Rationalist 🧠, Challenger 🔥, Optimist ✨ — chat with you. They answer one after another (random order), so it feels like a group chat.
 
-The project includes a minimal sign‑up/sign‑in flow (SQLite + hashed passwords), a responsive chat UI with dark/light themes, and router-based LLM calls via the OpenAI Python SDK pointed at Requesty Router.
+It has sign‑up/sign‑in (SQLite), a clean UI with light/dark mode, and calls a model through Requesty Router using the OpenAI SDK.
 
 ## Quick start (Windows PowerShell)
 
@@ -12,11 +12,11 @@ python app.py
 ```
 
 What this does:
-- Ensures dependencies from `requirements.txt` are installed
-- Starts the Flask server in debug mode
-- Opens http://127.0.0.1:5000 in your default browser
+- Installs dependencies if needed
+- Starts Flask (reloader off to avoid double‑start)
+- Waits until it’s ready, then opens http://127.0.0.1:5000
 
-If you prefer manual setup:
+Manual setup:
 ```powershell
 python -m pip install -r requirements.txt
 python main.py
@@ -24,11 +24,11 @@ python main.py
 
 ## Features
 
-- Multi‑bot replies in one thread (Empath, Rationalist, Challenger, Optimist)
-- Simple auth: sign up, sign in, logout (SQLite `user_data.db`, password hashing via Werkzeug)
-- Clean chat UI with dark/light theme toggle and animated typing indicator
-- “Bypass” button on auth screens to jump straight into chat (useful for demos)
-- Caching disabled in dev so CSS/JS/template changes show on refresh
+- Four personas reply in turn (random order)
+- Sign up / sign in / logout (SQLite, hashed passwords)
+- Dark/light theme and typing indicator
+- Logs saved to `logs/` and shown in a History sidebar (click to load)
+- “New Chat” card at the top of History, sticky header/footer, scrollable sidebar with ellipsis
 
 ## Tech stack
 
@@ -39,17 +39,18 @@ python main.py
 ## Project structure
 
 ```
-app.py                 # Launcher: installs deps (if needed) and runs main.py
-main.py                # Flask app: routes, SQLite auth, multi‑bot logic, /chat API
+ app.py                 # Launcher: installs deps, waits, opens browser
+ main.py                # Flask app: auth, relay, transcripts, logs API
 requirements.txt       # Flask + openai
 user_data.db           # SQLite DB (created at runtime)
+ logs/                  # Session logs (created at runtime)
 templates/
 	index.html           # Chat UI
 	login_index.html     # Sign up page
 	sign_in.html         # Sign in page
 static/
-	style.css            # Chat styles
-	script.js            # Chat behavior: send/receive, theme, sidebar, modal
+	 style.css            # Chat styles
+	 script.js            # Chat behavior: chat, theme, sidebar, modal
 	login_style.css      # Sign up styles
 	sign_in_style.css    # Sign in styles
 	login_script.js      # (empty placeholder)
@@ -59,25 +60,26 @@ static/
 
 ## How it works
 
-- Bots are defined in `main.py` (`BOT_DEFS`) with distinct instructions and names.
-- Session‑scoped chat histories are maintained per bot so each model call sees the full context.
-- On `POST /chat`, the server calls the router model once per bot and returns all replies.
-- `script.js` then renders the messages, groups consecutive replies per bot, and animates appearance.
+- `BOT_DEFS` in `main.py` defines each persona
+- `POST /chat` runs a relay: each bot gets the prior context and your prompt
+- `TRANSCRIPTS` hold this session’s turns; logs are written to `logs/` live
+- Sanitizers stop bots from speaking as others and limit name‑drops to known context
+- `script.js` renders messages and loads chats from the History list
 
 Model configuration (in `main.py`):
 - Router base URL: `https://router.requesty.ai/v1`
 - Model: `alibaba/qwen3-30b-a3b-instruct-2507`
 - API library: `openai` (v1+ style client)
 
-## Routes and API
+## Routes
 
-- `GET /` → Sign‑up page (`templates/login_index.html`)
-- `GET /sign_in` → Sign‑in page (`templates/sign_in.html`)
-- `POST /signup` → Create user; on success redirects to `/chat`
-- `POST /login` → Log in user; on success redirects to `/chat`
-- `GET /logout` → Clear session and redirect to `/`
-- `GET /chat` → Render chat UI (`templates/index.html`)
+- `GET /` → Sign up
+- `GET /sign_in` → Sign in
+- `POST /signup` / `POST /login` → On success go to `/chat`
+- `GET /logout` → Clear session → `/`
+- `GET /chat` → Chat UI; also resets in‑memory transcript and starts a new log
 - `POST /chat` → Chat API
+- `GET /logs`, `GET /logs/<name>` → List/read logs
 
 Request body for `POST /chat`:
 
@@ -100,50 +102,37 @@ Response body:
 
 ## Configuration
 
-- Secret key for sessions: set `FLASK_SECRET_KEY` (or the app uses a dev default)
+- Session secret: set `FLASK_SECRET_KEY` (otherwise a dev default is used)
 
 ```powershell
 $env:FLASK_SECRET_KEY = "change-me"
 ```
 
-- Router API key: currently hardcoded in `main.py` for demo purposes. Replace the `ROUTER_API_KEY` value with your own. For production, move secrets to env vars and don’t commit them.
+- Router API key is hardcoded in `main.py` for demo. Replace it with your key. In production, use env vars and do not commit secrets.
 
 ## Database
 
-- SQLite file: `user_data.db` at repo root
+- SQLite file: `user_data.db` (created at runtime)
 - Table: `users(id, username UNIQUE, password_hash, created_at)`
-- To reset: stop the server and delete `user_data.db` (a fresh DB will be created on next run)
+- To reset: stop server and delete the file
 
 ## Customize
 
-- Edit `BOT_DEFS` in `main.py` to change the personas, tone, or constraints
-- Change the model name or router base URL where `client.chat.completions.create(...)` is called
-- Tweak chat UI in `templates/index.html` and `static/style.css`
-- Add behavior to `static/login_script.js` or `static/sign_in_script.js` (currently empty)
+- Edit `BOT_DEFS` (personas and tone)
+- Change model/router at `client.chat.completions.create(...)`
+- Tweak UI in `templates/index.html` and `static/style.css`
 
 ## Troubleshooting
 
-- “No module named …” on first run:
-	- The launcher should install deps automatically. If it fails, run:
-		```powershell
-		python -m pip install -r requirements.txt
-		```
-
-- Server starts but browser shows an error:
-	- Check the terminal for a stack trace
-	- Verify your router API key is valid (update `ROUTER_API_KEY` in `main.py`)
-
-- Port 5000 in use:
-	- Stop the other process or run Flask on a different port by editing `app.run(debug=True)` in `main.py` (e.g., `app.run(debug=True, port=5050)`).
-
-- Static changes aren’t showing:
-	- Caching headers are disabled in dev, but a hard refresh (Ctrl+F5) can help
+- Missing modules: run `python -m pip install -r requirements.txt`
+- Browser error on first load: launcher waits for server; check terminal logs if it persists
+- Port 5000 busy: change port in `app.run(..., port=5050)`
 
 ## Notes and limitations
 
-- This is a hackathon‑style prototype: no CSRF protection on forms, no rate limiting, secrets are hardcoded for demo, and error handling is minimal
-- Don’t commit real API keys; prefer environment variables in real deployments
-- For production, use a proper WSGI server (e.g., gunicorn) and configure logging, secrets, and HTTPS
+- Prototype quality: minimal hardening
+- Don’t commit real keys; prefer env vars
+- For production, use a proper WSGI server and set up logging, secrets, HTTPS
 
 ---
 

@@ -83,14 +83,13 @@ body {
 	z-index: 35; /* above sidebar */
 }
 .title { font-size: 16px; font-weight: 600; margin: 0; }
- .user-logo {
+.user-logo {
 	background: var(--sidebar-card-bg);
 	color: var(--sidebar-text);
-	border: none;
+	border: 1px solid var(--border); /* subtle grey outline */
 	width: 56px; height: 56px; /* bigger button */
 	display: grid; place-items: center;
 	border-radius: 16px; /* more rounded */
-	border: 1px solid var(--border); /* subtle grey outline */
 	cursor: pointer;
 	font-size: 18px;
 	z-index: 40; /* above sidebar */
@@ -105,7 +104,7 @@ body {
 	filter: none;
 	transition: none !important;
 }
-.user-logo:hover { background: var(--accent-primary-10); }
+.user-logo:hover { background: var(--sidebar-card-bg); }
 /* Scale the icon inside the top-left user button */
 .user-logo img { width: 34px !important; height: 34px !important; display: block; }
 .user-logo img { width: 34px !important; height: 34px !important; display: block; filter: none; }
@@ -127,23 +126,42 @@ body {
 	transition: transform 240ms ease;
 	z-index: 30;
 	display: flex; flex-direction: column;
+	overflow-y: auto; /* make sidebar scrollable when content exceeds viewport */
 }
 .sidebar.open { transform: translateX(0); }
 .sidebar-header {
-	padding: 16px 55px;
+	padding: 20px 70px;
 	border-bottom: none;
 	font-weight: 1000;
 	display: flex;
 	align-items: center;
+	justify-content: space-between; /* space title and button */
 	gap: 10px;
-    font-size: 1.5rem;
+    font-size: 1.75rem;
 	font-family: var(--font-accent);
+	position: sticky; /* keep title visible */
+	top: 0;
+	z-index: 65; /* above list items but below topbar */
+	background: var(--sidebar-bg);
 }
 .sidebar-header span {
-	margin-left: 20px;
+	margin-left: 8px;
 	font-weight: 600;
 	color: var(--sidebar-text);
 }
+.new-chat-btn {
+	background: var(--accent-primary);
+	color: #fff;
+	text-decoration: none;
+	border-radius: 10px;
+	padding: 8px 12px;
+	font-weight: 600;
+	font-size: 0.9rem;
+	border: 1px solid transparent;
+	transition: background 0.2s ease, transform 0.05s ease;
+}
+.new-chat-btn:hover { background: var(--accent-primary-hover); }
+.new-chat-btn:active { transform: translateY(1px); }
 .sidebar-content { padding: 8px; display: grid; gap: 6px; }
 .sidebar-link {
 	color: var(--text);
@@ -157,15 +175,15 @@ body {
 .user-list {
 	padding: 8px;
 	display: grid;
-	gap: 1rem; /* consistent gap between cards */
-	margin-top: 32px; /* move list lower */
+	gap: 0.75rem; /* taller spacing to match taller cards */
+	margin-top: 12px; /* move list up slightly */
 }
 .user-card {
 	display: flex;
 	align-items: center;
-	gap: 0.75rem; /* increased space between icon and text */
-	padding: 1rem 1.25rem; /* 16px 20px */
-	border-radius: 16px; /* align to 8px multiples */
+	gap: 0.75rem; /* slight increase */
+	padding: 0.9rem 0.9rem; /* taller card */
+	border-radius: 12px; /* slightly smaller radius */
 	border: 1px solid var(--border);
 	background: var(--sidebar-card-bg);
 	color: var(--sidebar-text);
@@ -174,30 +192,79 @@ body {
 .user-card:hover { background: var(--sidebar-card-bg-hover); }
 .user-card.selected { background: var(--accent-primary-10); }
 .user-avatar {
-	width: 40px; height: 40px;
+	width: 32px; height: 32px; /* a bit bigger to fit taller card */
 	display: grid; place-items: center;
 	border-radius: 50%;
-    background: transparent;
-    padding: 0;
+	background: transparent;
+	padding: 0;
 }
 .user-avatar-img {
-    width: 32px;
-    height: 32px;
-    display: block;
-    object-fit: contain;
+	width: 26px;
+	height: 26px;
+	display: block;
+	object-fit: contain;
 }
-.user-name { font-weight: 600; font-size: 1.05rem; }
+.user-name { font-weight: 600; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+
+/* History section */
+.history-section {
+	padding: 8px 12px 16px;
+}
+.history-header {
+	margin: 12px 0 6px;
+	font-weight: 700;
+	color: var(--sidebar-text);
+}
+.history-list {
+	display: grid;
+	grid-template-columns: 1fr; /* single column like user-cards */
+	gap: 6px;
+	padding: 4px 0;
+}
+.history-item {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 10px;
+	padding: 10px 12px; /* taller entries */
+	border-radius: 8px;
+	cursor: pointer;
+}
+.history-item:hover { background: var(--sidebar-card-bg-hover); }
+.history-meta { color: var(--text-secondary); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.history-name { font-size: 13px; font-weight: 600; color: var(--sidebar-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Ensure flex children can actually ellipsize */
+.history-item > .user-avatar + div { min-width: 0; flex: 1 1 auto; }
+.history-info { min-width: 0; flex: 1 1 auto; }
+/* New Chat card styling */
+.history-new-chat {
+	border-style: dashed;
+	border-color: var(--accent-primary);
+}
+.history-new-chat .user-avatar {
+	background: var(--accent-primary-10);
+	color: var(--accent-primary);
+	font-weight: 900;
+	font-size: 20px;
+}
+/* Our history cards reuse .user-card; ensure inner info can shrink so name/meta ellipsize */
+.history-card > .user-avatar + div { min-width: 0; flex: 1 1 auto; }
+.history-card { overflow: hidden; }
+/* Removed history-preview box to simplify UI */
 
 /* Sidebar footer with gear */
 .sidebar-footer {
 	margin-top: auto;
-	position: relative;
+	position: sticky; /* keep footer visible while scrolling */
+	bottom: 0;
+	z-index: 60; /* above history/content within sidebar */
 	padding: 10px 12px;
 	display: flex;
 	justify-content: flex-start; /* bottom-left */
 }
  .settings-panel {
 	position: relative;
+	z-index: 70; /* ensure panel and buttons overlay list items */
 	display: flex;
 	align-items: center;
 	gap: 14px; /* more gap, room for future buttons */
@@ -305,6 +372,7 @@ body {
 	border: none;
 	font-family: var(--font-ui);
 	font-size: 15px;
+	white-space: pre-wrap; /* respect embedded newlines and wrap long lines */
 }
 .message.left .bubble { /* bot */
 	background: var(--bubble-bot-bg);

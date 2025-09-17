@@ -9,6 +9,8 @@
 	const gearBtn = document.getElementById('gearBtn');
 	const settingsPanel = document.getElementById('settingsPanel');
 	const themeToggle = document.getElementById('themeToggle');
+	const historyList = document.getElementById('historyList');
+    // preview element removed from UI; no reference needed
 
 	function setSidebar(open) {
 		sidebar.classList.toggle('open', open);
@@ -189,18 +191,8 @@
 		// Send to backend and render bot replies gradually
 		try {
 			const data = await sendToBots(text);
-			let replies = (data && data.replies) || [];
-			// Reorder by estimated length + small random jitter so shorter messages tend to appear first
-			replies = replies
-				.map(r => {
-					const msg = String(r.message || '');
-					const parts = msg.split(/(?:\r?\n|\\n)/).filter(Boolean);
-					const size = msg.length + parts.length * 20; // weight multi-line replies a bit more
-					const jitter = Math.random() * 200 - 100; // -100..+100 effect
-					return { r, score: size + jitter };
-				})
-				.sort((a, b) => a.score - b.score)
-				.map(x => x.r);
+			const replies = (data && data.replies) || [];
+			// Preserve server-defined order (sequential relay): do not reorder.
 
 			// Show replies one by one with random delays
 			for (const r of replies) {
@@ -269,6 +261,191 @@
 			typing.remove();
 		}
 	});
+
+	// ---- Logs History ----
+	async function loadLogs() {
+		if (!historyList) return;
+		try {
+			const res = await fetch('/logs');
+			if (!res.ok) throw new Error('Failed to load logs');
+			const data = await res.json();
+			historyList.innerHTML = '';
+
+			// Insert a "New Chat" button as the first card in the history list
+			const newChat = document.createElement('div');
+			newChat.className = 'user-card history-card history-new-chat';
+			newChat.setAttribute('role', 'button');
+			newChat.setAttribute('tabindex', '0');
+			const newAvatar = document.createElement('div');
+			newAvatar.className = 'user-avatar';
+			newAvatar.textContent = '+';
+			const newInfo = document.createElement('div');
+			newInfo.className = 'history-info';
+			newInfo.style.display = 'flex';
+			newInfo.style.flexDirection = 'column';
+			newInfo.style.minWidth = '0';
+			const newName = document.createElement('div');
+			newName.className = 'history-name';
+			newName.textContent = 'New Chat';
+			const newMeta = document.createElement('div');
+			newMeta.className = 'history-meta';
+			newMeta.textContent = 'Start a fresh conversation';
+			newInfo.appendChild(newName);
+			newInfo.appendChild(newMeta);
+			newChat.appendChild(newAvatar);
+			newChat.appendChild(newInfo);
+			newChat.addEventListener('click', () => { window.location.href = '/chat'; });
+			newChat.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); window.location.href = '/chat'; } });
+			historyList.appendChild(newChat);
+
+			const files = (data && data.files) || [];
+			for (const f of files) {
+				const item = document.createElement('div');
+				item.className = 'user-card history-card';
+				item.setAttribute('role', 'button');
+				item.setAttribute('tabindex', '0');
+				item.dataset.name = f.name;
+				const avatar = document.createElement('div');
+				avatar.className = 'user-avatar';
+				avatar.textContent = '🗂️';
+				const info = document.createElement('div');
+				info.className = 'history-info';
+				info.style.display = 'flex';
+				info.style.flexDirection = 'column';
+				info.style.minWidth = '0'; // allow ellipsis
+				const name = document.createElement('div');
+				name.className = 'history-name';
+				name.textContent = f.name;
+				const meta = document.createElement('div');
+				meta.className = 'history-meta';
+				meta.textContent = `${f.mtime} • ${(f.size/1024).toFixed(1)} KB`;
+				info.appendChild(name);
+				info.appendChild(meta);
+				item.appendChild(avatar);
+				item.appendChild(info);
+				item.addEventListener('click', () => { loadLogAsChat(f.name); });
+				item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); loadLogAsChat(f.name); } });
+				historyList.appendChild(item);
+			}
+			// no preview pane anymore
+		} catch (e) {
+			if (historyList) historyList.innerHTML = `<div class="history-meta">${String(e)}</div>`;
+		}
+	}
+
+	// Load logs on sidebar open
+	const originalSetSidebar = setSidebar;
+	setSidebar = function(open) {
+		originalSetSidebar(open);
+		if (open) loadLogs();
+	};
+
+	// Render a selected log into the chat area
+	async function loadLogAsChat(name) {
+		try {
+			const res = await fetch(`/logs/${encodeURIComponent(name)}`);
+			if (!res.ok) throw new Error('Failed to fetch log');
+			const data = await res.json();
+			renderChatFromLog(String((data && data.content) || ''));
+		} catch (e) {
+			console.error(e);
+		}
+	}
+
+	function renderChatFromLog(text) {
+		if (!messages) return;
+		messages.innerHTML = '';
+		const lines = String(text).split(/\r?\n/);
+		for (let raw of lines) {
+			const line = String(raw || '').trim();
+			if (!line) continue;
+			if (line.startsWith('===')) continue; // header
+			if (line.startsWith('[SYS]')) continue; // system note
+			// [USER] message
+			if (line.startsWith('[USER]')) {
+				const msg = line.replace(/^\[USER\]\s*/,'');
+				// Split on real newlines OR literal \n sequences
+				const parts = String(msg)
+					.split(/(?:\r?\n|\\n)/)
+					.map(s => String(s || '').trim())
+					.filter(s => s.length > 0);
+				for (const p of parts) appendUserMessage(p);
+				continue;
+			}
+			// [Bot] message
+			const m = line.match(/^\[(Empath|Rationalist|Challenger|Optimist)\]\s*(.*)$/);
+			if (m) {
+				const base = m[1];
+				const content = m[2] || '';
+				const parts = String(content)
+					.split(/(?:\r?\n|\\n)/)
+					.map(s => String(s || '').trim())
+					.filter(s => s.length > 0);
+				for (const p of parts) appendBotMessage(base, p);
+			}
+		}
+		// Scroll to bottom after render
+		scrollMessagesToBottom();
+	}
+
+	function appendUserMessage(text) {
+		const container = document.createElement('div');
+		container.className = 'message right';
+		const bubble = document.createElement('div');
+		bubble.className = 'bubble';
+		bubble.textContent = text;
+		bubble.style.background = 'var(--bubble-user-bg)';
+		bubble.style.color = 'var(--bubble-user-text)';
+		container.appendChild(bubble);
+		const userLogo = document.createElement('span');
+		userLogo.className = 'user-bubble-logo';
+		const img = document.createElement('img');
+		img.src = '../static/assests/user.png';
+		img.alt = 'User';
+		img.width = 28; img.height = 28;
+		userLogo.appendChild(img);
+		container.appendChild(userLogo);
+		messages.appendChild(container);
+	}
+
+	function appendBotMessage(base, text) {
+		const left = document.createElement('div');
+		left.className = 'message left';
+		const botLogo = document.createElement('span');
+		botLogo.className = 'user-bubble-logo';
+		let emoji = '';
+		switch (base) {
+			case 'Empath': emoji = '💙'; break;
+			case 'Rationalist': emoji = '🧠'; break;
+			case 'Challenger': emoji = '🔥'; break;
+			case 'Optimist': emoji = '✨'; break;
+		}
+		botLogo.textContent = emoji;
+
+		// Grouping: hide avatar and tighten spacing if same bot as previous bubble
+		let lastMessageEl = messages.lastElementChild;
+		if (lastMessageEl && lastMessageEl.querySelector && lastMessageEl.querySelector('.typing-bubble')) {
+			lastMessageEl = lastMessageEl.previousElementSibling;
+		}
+		const lastBubble = lastMessageEl ? lastMessageEl.querySelector('.bubble') : null;
+		const lastSender = lastBubble ? lastBubble.getAttribute('data-bot') : null;
+		const currentLabel = `${base} ${emoji}`.trim();
+		if (lastSender === currentLabel) {
+			botLogo.classList.add('avatar-hidden');
+			left.classList.add('grouped');
+		} else {
+			left.classList.add('separation');
+		}
+
+		left.appendChild(botLogo);
+		const botBubble = document.createElement('div');
+		botBubble.className = 'bubble';
+		botBubble.textContent = text;
+		botBubble.setAttribute('data-bot', currentLabel);
+		botBubble.setAttribute('aria-label', currentLabel);
+		left.appendChild(botBubble);
+		messages.appendChild(left);
+	}
 
 	async function sendToBots(message) {
 		const res = await fetch('/chat', {

@@ -66,10 +66,17 @@ def run_main() -> int:
     # Launch Flask in a subprocess
     process = subprocess.Popen([sys.executable, str(MAIN_FILE)])
 
-    # Try opening browser automatically
-    import webbrowser, time
-    time.sleep(2)  # Give Flask a couple of seconds to start
+    # Try opening browser automatically when server is ready
+    import webbrowser, time, urllib.request
     url = "http://127.0.0.1:5000"
+    print("Waiting for server to be ready...")
+    for i in range(50):  # ~10 seconds max (50 * 0.2)
+        try:
+            with urllib.request.urlopen(url, timeout=1) as _:
+                print("Server is up.")
+                break
+        except Exception:
+            time.sleep(0.2)
     print(f"Opening {url} in your browser...")
     webbrowser.open(url)
 
