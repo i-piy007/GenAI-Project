@@ -16,12 +16,39 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 # OpenAI client (Router)
-ROUTER_API_KEY = "sk-zM07vGy4T3axHtxeznboYQ91u7kX1B7uCEBUPtnymwWBkU2FQa/kJ/Kb1GsppWsYb0NN8GZyUAFZiEgN/yi099nZQYOSDdo6gnhRn0ujUAU="
+# Prefer env var if set, fallback to existing key to preserve current behavior
+ROUTER_API_KEY = os.getenv(
+    "ROUTER_API_KEY",
+    "sk-zM07vGy4T3axHtxeznboYQ91u7kX1B7uCEBUPtnymwWBkU2FQa/kJ/Kb1GsppWsYb0NN8GZyUAFZiEgN/yi099nZQYOSDdo6gnhRn0ujUAU=",
+)
 client = openai.OpenAI(
     api_key=ROUTER_API_KEY,
     base_url="https://router.requesty.ai/v1",
     default_headers={"Authorization": f"Bearer {ROUTER_API_KEY}"}
 )
+
+# --- Gemini 1.5 Flash helper ---
+def chat_with_gemini_1_5_flash(user_message: str) -> str:
+    """Call Gemini 1.5 Flash via the Requesty Router using the shared OpenAI client.
+
+    Args:
+        user_message: The user's prompt string.
+
+    Returns:
+        The assistant's reply text.
+    """
+    try:
+        response = client.chat.completions.create(
+            model="google/gemini-1.5-flash",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_message},
+            ],
+        )
+        # openai>=1.x style
+        return response.choices[0].message.content
+    except Exception as e:
+        return f"Error calling Gemini 1.5 Flash: {e}"
 
 BOT_DEFS = {
     "Empath 💙": (
@@ -289,6 +316,17 @@ def add_header(r):
     r.headers["Pragma"] = "no-cache"
     r.headers["Expires"] = "0"
     return r
+
+# --- Simple verification endpoint for Gemini ---
+@app.get('/gemini-test')
+def gemini_test():
+    """Quick test endpoint to verify Gemini 1.5 Flash integration.
+
+    Usage: GET /gemini-test?q=Hello
+    """
+    q = (request.args.get('q') or 'Hello Gemini 1.5 Flash!').strip()
+    reply = chat_with_gemini_1_5_flash(q)
+    return jsonify({"model": "google/gemini-1.5-flash", "input": q, "reply": reply})
 
 # ---- Logs API ----
 def _safe_log_files():
