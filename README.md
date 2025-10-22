@@ -1,4 +1,4 @@
-# GenAI-Project — Multi‑Bot Group Chat
+# Lumos — Multi‑Bot Group Chat
 
 A small Flask app where four bots — Empath 💙, Rationalist 🧠, Challenger 🔥, Optimist ✨ — chat with you. They answer one after another (random order), so it feels like a group chat.
 
