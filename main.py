@@ -17,10 +17,7 @@ app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
 # OpenAI client (Router)
 # Prefer env var if set, fallback to existing key to preserve current behavior
-ROUTER_API_KEY = os.getenv(
-    "ROUTER_API_KEY",
-    "sk-zM07vGy4T3axHtxeznboYQ91u7kX1B7uCEBUPtnymwWBkU2FQa/kJ/Kb1GsppWsYb0NN8GZyUAFZiEgN/yi099nZQYOSDdo6gnhRn0ujUAU=",
-)
+ROUTER_API_KEY = os.getenv("ROUTER_API_KEY")
 client = openai.OpenAI(
     api_key=ROUTER_API_KEY,
     base_url="https://router.requesty.ai/v1",
@@ -477,8 +474,3 @@ def chat():
 
     return jsonify({"replies": replies})
 
-if __name__ == '__main__':
-    init_db()
-    # Quick Railway fix
-    port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
