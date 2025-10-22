@@ -271,6 +271,11 @@ def get_histories_for_session():
 def index():
     return render_template('login_index.html')
 
+@app.route('/health')
+def health():
+    return "OK", 200
+
+
 # sign_in route defined later
 
 @app.route('/signup', methods=['POST'])
@@ -474,3 +479,6 @@ def chat():
 
     return jsonify({"replies": replies})
 
+
+if __name__ == '__main__':
+    app.run(debug=True)
