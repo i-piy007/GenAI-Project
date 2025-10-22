@@ -15,13 +15,15 @@ app.config['TEMPLATES_AUTO_RELOAD'] = True
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-me")
 
-# OpenAI client (Router)
-# Prefer env var if set, fallback to existing key to preserve current behavior
-ROUTER_API_KEY = os.getenv("ROUTER_API_KEY")
+# OpenAI client (OpenRouter)
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "<OPENROUTER_API_KEY>")
 client = openai.OpenAI(
-    api_key=ROUTER_API_KEY,
-    base_url="https://router.requesty.ai/v1",
-    default_headers={"Authorization": f"Bearer {ROUTER_API_KEY}"}
+    base_url="https://openrouter.ai/api/v1",
+    api_key=OPENROUTER_API_KEY,
+    default_headers={
+        "HTTP-Referer": os.getenv("OPENROUTER_SITE_URL", "<YOUR_SITE_URL>"),  # Optional. Site URL for rankings on openrouter.ai.
+        "X-Title": os.getenv("OPENROUTER_SITE_NAME", "<YOUR_SITE_NAME>"),  # Optional. Site title for rankings on openrouter.ai.
+    },
 )
 
 # --- Gemini 1.5 Flash helper ---
@@ -457,7 +459,7 @@ def chat():
 
         try:
             resp = client.chat.completions.create(
-                model="alibaba/qwen3-30b-a3b-instruct-2507",
+                model="nvidia/nemotron-nano-9b-v2:free",
                 messages=messages,
             )
             reply_text = resp.choices[0].message.content
